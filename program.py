@@ -14,11 +14,11 @@ crsr.execute('''create table if not exists Bus
 crsr.execute('''create table if not exists Bustable 
              (name text,
              regno text,
-             arrivalPlace text,
-             arrivalTime int,
              departurePlace text,
              departureTime int,
-             primary key(regno,arrivalTime))''')
+             arrivalPlace text,
+             arrivalTime int,
+             primary key(regno,departureTime))''')
 crsr.execute('''create table if not exists Route
              (placeA text,
              placeB text,
@@ -56,9 +56,9 @@ def addBusSql(name,regno):
     except: return "Update failed"
     return message()
 
-def addBusTableSql(name,regno,arrivalPlace,arrivalTime,departurePlace,departureTime):
+def addBusTableSql(name,regno,departurePlace,departureTime,arrivalPlace,arrivalTime):
     try:
-        crsr.execute('''insert into Bustable values(?,?,?,?,?,?)''',(name,regno,arrivalPlace,arrivalTime,departurePlace,departureTime))
+        crsr.execute('''insert into Bustable values(?,?,?,?,?,?)''',(name,regno,departurePlace,departureTime,arrivalPlace,arrivalTime))
     except: return "Update failed"
     return message()
 
@@ -80,9 +80,9 @@ def deleteBuses(name,regno):
     except:pass
     return message()
 
-def deleteBusTableSql(name,regno,arrivalPlace,arrivalTime,departurePlace,departureTime):
+def deleteBusTableSql(name,regno,departurePlace,departureTime,arrivalPlace,arrivalTime):
     try:
-        crsr.execute('delete from Bustable where name=? and regno=? and arrivalPlace=? and arrivalTime=? and departurePlace=? and departureTime=? ',(name,regno,arrivalPlace,arrivalTime,departurePlace,departureTime))
+        crsr.execute('delete from Bustable where name=? and regno=? and departurePlace=? and departureTime=? and arrivalPlace=? and arrivalTime=? ',(name,regno,departurePlace,departureTime,arrivalPlace,arrivalTime))
     except :pass
     return message()
 
@@ -149,7 +149,7 @@ def viewPlace():
             print()
 
 
-def addPlace():
+def addeparturePlace():
     print("Places in the list")
     viewPlace()
     s=input("Enter new place name: ")
@@ -185,7 +185,7 @@ def placeMenu():
         if ch==1:
             viewPlace()
         elif ch==2:
-            addPlace()
+            addeparturePlace()
         elif ch==3:
             deletePlace()
         elif ch==4:
@@ -314,7 +314,7 @@ def deleteRoute():
                     break
             if l=="y":
                 msg=deleteRouteSql(placea=r[1],placeb=r[2],distance=r[3])
-                crsr.execute('''delete from bustable where arrivalPlace=? and departurePlace=?''',(r[1],r[2]))
+                crsr.execute('''delete from bustable where departurePlace=? and arrivalPlace=?''',(r[1],r[2]))
                 conn.commit()
                 print(msg)
                 break
@@ -360,7 +360,7 @@ def viewBusTable():
         lst.append(l)
         x+=1
     table=PrettyTable()
-    table.field_names=["Sl. No.","Name","Reg. no.","Arrival","A-Time","Departure","D-Time"]
+    table.field_names=["Sl. No.","Name","Reg. no.","Departure","D-Time","Arrival","A-Time"]
     table.add_rows(lst)
     print(table)
 
@@ -385,27 +385,9 @@ def addBusTable():
     while True:
         print()
         print("Arrival place : ")
-        arrivalPlace=getInp()
-        if arrivalPlace in placeTable.keys():
-            arrivalPlace=placeTable[arrivalPlace]
-            break
-        else:print("Choose valid input")
-    while True:
-        arrivalTime=input("Time in 24hr (HH:MM): ")
-        if timeFormat(arrivalTime):
-            arrivalTime=timeConvert(arrivalTime)
-            break
-        else: print("Incorrect format")
-    while True:
-        viewPlace()
-        print()
-        print("Departure place : ")
         departurePlace=getInp()
         if departurePlace in placeTable.keys():
             departurePlace=placeTable[departurePlace]
-            if arrivalPlace==departurePlace:
-                print("Arrival and departure cannot be same")
-                continue
             break
         else:print("Choose valid input")
     while True:
@@ -414,7 +396,25 @@ def addBusTable():
             departureTime=timeConvert(departureTime)
             break
         else: print("Incorrect format")
-    msg=addBusTableSql(name,regno,arrivalPlace,arrivalTime,departurePlace,departureTime)
+    while True:
+        viewPlace()
+        print()
+        print("Departure place : ")
+        arrivalPlace=getInp()
+        if arrivalPlace in placeTable.keys():
+            arrivalPlace=placeTable[arrivalPlace]
+            if departurePlace==arrivalPlace:
+                print("Departure and arrival cannot be same")
+                continue
+            break
+        else:print("Choose valid input")
+    while True:
+        arrivalTime=input("Time in 24hr (HH:MM): ")
+        if timeFormat(arrivalTime):
+            arrivalTime=timeConvert(arrivalTime)
+            break
+        else: print("Incorrect format")
+    msg=addBusTableSql(name,regno,departurePlace,departureTime,arrivalPlace,arrivalTime)
     print(msg)
 
 def deleteBusTable():
@@ -424,7 +424,7 @@ def deleteBusTable():
         n=getInp()
         if n<=len(lst):
             l=lst[n-1]
-            msg=deleteBusTableSql(name=l[1],regno=l[2],arrivalPlace=l[3],arrivalTime=timeConvert(l[4]),departurePlace=l[5],departureTime=timeConvert(l[6]))
+            msg=deleteBusTableSql(name=l[1],regno=l[2],departurePlace=l[3],departureTime=timeConvert(l[4]),arrivalPlace=l[5],arrivalTime=timeConvert(l[6]))
             print(msg)
             return
         else:
@@ -510,7 +510,7 @@ def calcAllPath(start,end):
     sorted_data=addNumToList(sorted_data)
     return sorted_data
 
-def choosePath(start,end,arrivalTime):
+def choosePath(start,end,departureTime):
     pathList=calcAllPath(start,end)
     print("Choose a Path")
     for path in pathList:
@@ -527,7 +527,7 @@ def choosePath(start,end,arrivalTime):
             ch=pathList[ch-1][1:-1]
             break
         else: print("Try again")
-    showBuses(ch,arrivalTime)
+    showBuses(ch,departureTime)
 
 class BusPath():
     def __init__(self,path):
@@ -552,19 +552,19 @@ class BusPath():
             i[3]=timeConvertBack(i[3])
             i[5]=timeConvertBack(i[5])
 
-def printFinalTable(bpList):
+def printFinalTable(bpList) :
     bpList_sorted=sorted(bpList, key=lambda obj: obj.totalTime)
     cnt=0
     for p in bpList_sorted:
         table=PrettyTable()
-        table.field_names=["Bus name","Reg. no.","Arrival","A-Time","Departure ","D-Time"]
+        table.field_names=["Bus name","Reg. no.","Departure","D-Time","Arrival","A-Time"]
         table.max_width=20
         table.add_rows(p.path)
         print(table)
         print("Estimated Time : ",timeConvertBack(p.totalTime),"h")
         print()
         cnt+=1
-        if cnt==2 and len(p)>2:
+        if cnt==2 and len(bpList_sorted)>2:
             cnt=0
             print("Load more ? (Y/n)")
             while True:
@@ -577,12 +577,12 @@ def printFinalTable(bpList):
 
 def pathMaker(x,path):
     if len(path)==1: return []
-    arrivalTime=x[5]
-    arrivalPlace=x[4]
+    departureTime=x[5]
+    departurePlace=x[4]
     newPaths=[]
-    crsr2.execute("""update bustable set arrivalTime=arrivalTime+1440,departureTime=departureTime+1440 where arrivalTime<? and arrivalPlace=?""",(arrivalTime,arrivalPlace))
-    crsr2.execute("""update bustable set departureTime=departureTime+1440 where departureTime<? and arrivalPlace=?""",(arrivalTime,arrivalPlace))
-    crsr2.execute("Select * from bustable where arrivalPlace=? and arrivalTime>=?",(arrivalPlace,arrivalTime))
+    crsr2.execute("""update bustable set departureTime=departureTime+1440,arrivalTime=arrivalTime+1440 where departureTime<? and departurePlace=?""",(departureTime,departurePlace))
+    crsr2.execute("""update bustable set arrivalTime=arrivalTime+1440 where arrivalTime<? and departurePlace=?""",(departureTime,departurePlace))
+    crsr2.execute("Select * from bustable where departurePlace=? and departureTime>=?",(departurePlace,departureTime))
     details=crsr2.fetchall()
     crsr2.execute("rollback to sp1;")
     if details==[]:return []
@@ -606,17 +606,17 @@ def get_keys_from_value(d, value):
     keys = [key for key, val in d.items() if val == value] 
     return keys
 
-def showBuses(path,arrivalTime):
+def showBuses(path,departureTime):
     h=nx.Graph()
     h.add_nodes_from(path)
     pathListFull=[]
     endPath=path[1:]
-    crsr.execute("Select * from bustable where arrivalPlace=? and arrivalTime>=?",(path[0],arrivalTime))
+    crsr.execute("Select * from bustable where departurePlace=? and departureTime>=?",(path[0],departureTime))
     details1=crsr.fetchall()
     if details1!=[]:
-        crsr2.execute("""update bustable set arrivalTime=arrivalTime+1440,departureTime=departureTime+1440 where arrivalTime<? and arrivalPlace=?""",(arrivalTime,path[0]))
-        crsr2.execute("""update bustable set departureTime=departureTime+1440 where departureTime<? and arrivalPlace=?""",(arrivalTime,path[0]))
-        crsr2.execute("Select * from bustable where arrivalPlace=? and arrivalTime>=?",(path[0],arrivalTime))
+        crsr2.execute("""update bustable set departureTime=departureTime+1440,arrivalTime=arrivalTime+1440 where departureTime<? and departurePlace=?""",(departureTime,path[0]))
+        crsr2.execute("""update bustable set arrivalTime=arrivalTime+1440 where arrivalTime<? and departurePlace=?""",(departureTime,path[0]))
+        crsr2.execute("Select * from bustable where departurePlace=? and departureTime>=?",(path[0],departureTime))
         details=crsr2.fetchall()
         crsr2.execute("rollback to sp1;")
         for x in details:
@@ -652,7 +652,7 @@ def showBuses(path,arrivalTime):
         if l!="y":mainMenu()
         start=get_keys_from_value(placeTable,path[0])
         end=get_keys_from_value(placeTable,path[-1])
-        choosePath(start[0],end[0],arrivalTime)
+        choosePath(start[0],end[0],departureTime)
         return
     printFinalTable(bpList)
 
@@ -674,14 +674,14 @@ def findBus():
                 continue
             else:
                 while True:
-                    arrivalTime=input("Time in 24hr (HH:MM): ")
-                    if timeFormat(arrivalTime):
-                        arrivalTime=timeConvert(arrivalTime)
+                    departureTime=input("Time in 24hr (HH:MM): ")
+                    if timeFormat(departureTime):
+                        departureTime=timeConvert(departureTime)
                         break
                     else: 
                         print("Incorrect format")
             print()
-            choosePath(start,end,arrivalTime)
+            choosePath(start,end,departureTime)
             break
 
 def mainMenu():
