@@ -149,7 +149,7 @@ def viewPlace():
             print()
 
 
-def addeparturePlace():
+def addPlace():
     print("Places in the list")
     viewPlace()
     s=input("Enter new place name: ")
@@ -185,7 +185,7 @@ def placeMenu():
         if ch==1:
             viewPlace()
         elif ch==2:
-            addeparturePlace()
+            addPlace()
         elif ch==3:
             deletePlace()
         elif ch==4:
